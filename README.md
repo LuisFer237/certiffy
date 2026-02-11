@@ -43,11 +43,9 @@ python manage.py test business
 
 ---
 
-## `Decisiones Técnicas Relevantes
+## Decisiones Técnicas Relevantes
 
-Basado en los requisitos técnicos del proyecto:
-
-* **Cálculo de Totales Dinámicos:** Se decidió calcular el total de una venta como `subtotal + tax` mediante agregaciones del ORM en lugar de almacenarlo estáticamente. Esto garantiza la consistencia financiera en tiempo real.
+* **Cálculo de Totales Dinámicos:** Se decidió calcular el total de una venta como `subtotal + tax` mediante agregaciones del ORM en lugar de almacenarlo estáticamente.
 * **Atomicidad en el Cierre:** El proceso de cierre de remisiones utiliza `transaction.atomic`. Esto asegura que si una validación falla, no se persista ningún cambio parcial.
 * **Optimización de Consultas (N+1):** Se implementó el uso de `select_related` y `prefetch_related` en los ViewSets. Para mejorar el rendimiento al realizar las consultas
 * **Integridad de Datos con Validadores:** Se aplicaron validaciones coherentes en los modelos para asegurar folios únicos y montos no negativos (ventas ≥ 0 y créditos > 0).
