@@ -29,32 +29,40 @@ class Command(BaseCommand):
                 folio=f"ORD-{fake.unique.bothify(text='####??')}"
             )
             
-        remission = Remission.objects.create(
-            order=order,
-            folio=f"REM-{fake.unique.bothify(text='####??')}",
-            status='open'
-        )
-        
-        
-        total_sales_amount = Decimal('0.00')
-        for _ in range(random.randint(1,3)):
-            subtotal = Decimal(random.uniform(10.0,500.0)).quantize(Decimal('0.00'))
-            tax = (subtotal * Decimal('0.16')).quantize(Decimal('0.00'))
-            Sale.object.create(
-                remission=remission,
-                subtotal=subtotal,
-                tax=tax,
-                created_at=fake.date_time_between(star_date='-30d', end_date='now', tzinfo=timezone.get_current.timezone())
+            remission = Remission.objects.create(
+                order=order,
+                folio=f"REM-{fake.unique.bothify(text='####??')}",
+                status='open'
             )
-            total_sales_amount += (subtotal + tax)
-            
-            
-        if random.random() > 0.5:
-            amount = Decimal(random.uniform(5.0, float(total_sales_amount) * 1.2)).quantize(Decimal('0.00'))
-            CreditAssignment.objects.create(
-                remission=remission,
-                amount=amount,
-                reason=fake.sentence()
+        
+            current_date = fake.date_time_between(
+                start_date='-30d', 
+                end_date='now', 
+                tzinfo=timezone.get_current_timezone()
             )
+            
+            total_sales_amount = Decimal('0.00')
+            for _ in range(random.randint(1,3)):
+                subtotal = Decimal(random.uniform(10.0,500.0)).quantize(Decimal('0.00'))
+                tax = (subtotal * Decimal('0.16')).quantize(Decimal('0.00'))
+                
+                sale = Sale.objects.create(
+                    remission=remission,
+                    subtotal=subtotal,
+                    tax=tax
+                )
+                
+                sale.created_at = current_date
+                sale.save()
+                
+                total_sales_amount += (subtotal + tax)
+                
+            if random.random() > 0.5:
+                amount = Decimal(random.uniform(5.0, float(total_sales_amount) * 1.2)).quantize(Decimal('0.00'))
+                CreditAssignment.objects.create(
+                    remission=remission,
+                    amount=amount,
+                    reason=fake.sentence()
+                )
    
-        self.stdout.write(self.style.SUCCESS(f'Se generaron exitosamente registros masivos.'))
+        self.stdout.write(self.style.SUCCESS(f'Database seeding completed successfully.'))

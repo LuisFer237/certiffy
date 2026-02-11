@@ -1,9 +1,9 @@
 from rest_framework import serializers
-from business.models import Costumer, Order, Remission, Sale, CreaditAssignment
+from business.models import Customer, Order, Remission, Sale, CreditAssignment
 
-class CostumerSerializer(serializers.ModelSerializer):
+class CustomerSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Costumer
+        model = Customer
         fields = '__all__'
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -37,9 +37,9 @@ class SaleSerializer(serializers.ModelSerializer):
             'created_at'
         ]
 
-class CreditAssigmentSerializer(serializers.ModelSerializer):
+class CreditAssignmentSerializer(serializers.ModelSerializer):
     class Meta:
-        model = CreaditAssignment
+        model = CreditAssignment
         fields = '__all__'
         
         

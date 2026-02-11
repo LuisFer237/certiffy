@@ -12,11 +12,11 @@ class CustomerViewSet(viewsets.ModelViewSet):
     serializer_class = CustomerSerializer
     
 class OrderViewSet(viewsets.ModelViewSet):
-    queryset = Order.objects.all()
+    queryset = Order.objects.select_related('customer').all()
     serializer_class = OrderSerializer
     
-class RemissionViewSet(viewsets.MidelViewSet):
-    queryset = Remission.objects.all()
+class RemissionViewSet(viewsets.ModelViewSet):
+    queryset = Remission.objects.select_related('order__customer').prefetch_related('sales', 'credits').all()
     serializer_class = RemissionSerializer
     
     @action(detail=True, methods=['post'])
@@ -24,7 +24,7 @@ class RemissionViewSet(viewsets.MidelViewSet):
         remission = self.get_object()
         try:
             remission.close()
-            return Response({'message': 'Remisión cerrada'}, status= status.HTTP_200_OK)
+            return Response({'message': 'Remisión cerrada'}, status=status.HTTP_200_OK)
         except ValidationError as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -59,7 +59,7 @@ class DailySalesReportViewSet(viewsets.ViewSet):
             )
             
         report = (
-            Sale.objects,filter(created_at__date__range=[date_from,date_to])
+            Sale.objects.filter(created_at__date__range=[date_from,date_to])
             .annotate(date=TruncDate('created_at'))
             .values('date')
             .annotate(

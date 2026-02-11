@@ -1,6 +1,6 @@
 from django.db import models, transaction
 from django.db.models import Sum
-from django.core,validators import MinValueValidator
+from django.core.validators import MinValueValidator
 from decimal import Decimal
 from django.core.exceptions import ValidationError
 
@@ -24,6 +24,7 @@ class Remission(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='remissions')
     folio = models.CharField(max_length=50, unique=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='open')
+    created_at = models.DateTimeField(auto_now_add=True)
     
     def close(self):
         with transaction.atomic():
@@ -32,7 +33,7 @@ class Remission(models.Model):
                 total_tax = Sum('tax')
             )
         
-            total_sales = (sales_data['total_subdata'] or 0) + (sales_data['total_tax'] or 0)
+            total_sales = (sales_data['total_subtotal'] or 0) + (sales_data['total_tax'] or 0)
             total_credits = self.credits.aggregate(total=Sum('amount'))['total'] or 0
             sales_count = self.sales.count()
             
@@ -60,13 +61,14 @@ class Sale(models.Model):
         decimal_places=2,
         validators=[MinValueValidator(Decimal('0.00'))]              
     )
+    created_at = models.DateTimeField(auto_now_add=True)
     
     @property
     def total(self):
         return self.subtotal + self.tax
     
-class CreaditAssignment(models.Model):
-    remission = models.ForeingKey(Remission,on_delete=models.CASCADE, related_name='credits')
+class CreditAssignment(models.Model):
+    remission = models.ForeignKey(Remission,on_delete=models.CASCADE, related_name='credits')
     amount = models.DecimalField(
         max_digits=12,
         decimal_places=2,
