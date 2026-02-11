@@ -1,0 +1,77 @@
+from django.db import models, transaction
+from django.db.models import Sum
+from django.core,validators import MinValueValidator
+from decimal import Decimal
+from django.core.exceptions import ValidationError
+
+class Customer(models.Model):
+    name = models.CharField(max_length=255)
+    email = models.EmailField(blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    
+class Order(models.Model):
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='orders')
+    folio = models.CharField(max_length=50, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+class Remission(models.Model):
+    
+    STATUS_CHOICES = [
+        ('open', 'Open'),
+        ('closed', 'Closed'),
+    ]
+    
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='remissions')
+    folio = models.CharField(max_length=50, unique=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='open')
+    
+    def close(self):
+        with transaction.atomic():
+            sales_data = self.sales.aggregate(
+                total_subtotal = Sum('subtotal'),
+                total_tax = Sum('tax')
+            )
+        
+            total_sales = (sales_data['total_subdata'] or 0) + (sales_data['total_tax'] or 0)
+            total_credits = self.credits.aggregate(total=Sum('amount'))['total'] or 0
+            sales_count = self.sales.count()
+            
+            if sales_count == 0:
+                raise ValidationError("No es posible cerrar una remisión si no tiene al menos 1 Sale")
+            
+            if total_credits > total_sales:
+                raise ValidationError(
+                    f"No es posible cerrar la remisión debido a que la suma de créditos ({total_credits}) "
+                    f"excede del total vendido ({total_sales})"
+                )
+                
+            self.status = 'closed'
+            self.save()
+    
+class Sale(models.Model):
+    remission = models.ForeignKey(Remission, on_delete=models.CASCADE, related_name='sales')
+    subtotal = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.00'))]              
+    )
+    tax = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.00'))]              
+    )
+    
+    @property
+    def total(self):
+        return self.subtotal + self.tax
+    
+class CreaditAssignment(models.Model):
+    remission = models.ForeingKey(Remission,on_delete=models.CASCADE, related_name='credits')
+    amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))]
+    )
+    reason = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
