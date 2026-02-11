@@ -15,7 +15,10 @@ class Order(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
 class Remission(models.Model):
-    
+    """
+    Modelo que gestiona las remisiones de una orden.
+    Maneja los estados 'open' y 'closed' y aplica las reglas de validación de cierre.
+    """
     STATUS_CHOICES = [
         ('open', 'Open'),
         ('closed', 'Closed'),
@@ -27,6 +30,13 @@ class Remission(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     
     def close(self):
+        """
+        Ejecuta el cierre de la remisión de forma atómica.
+        
+        Reglas de validación:
+        1. Requiere al menos una venta asociada.
+        2. El total de créditos no debe exceder el total de ventas.
+        """
         with transaction.atomic():
             sales_data = self.sales.aggregate(
                 total_subtotal = Sum('subtotal'),
@@ -38,7 +48,7 @@ class Remission(models.Model):
             sales_count = self.sales.count()
             
             if sales_count == 0:
-                raise ValidationError("No es posible cerrar una remisión si no tiene al menos 1 Sale")
+                raise ValidationError("No es posible cerrar una remisión si no tiene al menos 1 venta")
             
             if total_credits > total_sales:
                 raise ValidationError(
@@ -50,6 +60,11 @@ class Remission(models.Model):
             self.save()
     
 class Sale(models.Model):
+    """
+    Registra las ventas individuales asociadas a una remisión.
+    Asegura que los montos de subtotal e impuestos no sean negativos.
+    El total se calcula como la suma de subtotal e impuestos para mantener la consistencia de los datos.
+    """
     remission = models.ForeignKey(Remission, on_delete=models.CASCADE, related_name='sales')
     subtotal = models.DecimalField(
         max_digits=12,

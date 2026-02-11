@@ -8,6 +8,13 @@ from business.models import Customer, Order, Remission, Sale, CreditAssignment
 fake = Faker()
 
 class Command(BaseCommand):
+    """
+    Comando para poblar la base de datos con datos.
+    
+    Genera una estructura jerárquica de Clientes, Órdenes, Remisiones, Ventas y Créditos
+    utilizando la librería Faker para asegurar datos realistas y variabilidad en las fechas,
+    lo que permite validar correctamente los reportes diarios.
+    """
     help = 'Seed database with random data'
     
     def handle(self, *args, **kwargs):

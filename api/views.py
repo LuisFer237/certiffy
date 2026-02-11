@@ -12,10 +12,18 @@ class CustomerViewSet(viewsets.ModelViewSet):
     serializer_class = CustomerSerializer
     
 class OrderViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para la gestión de Órdenes.
+    Utiliza select_related para optimizar la carga del cliente asociado y evitar N+1.
+    """
     queryset = Order.objects.select_related('customer').all()
     serializer_class = OrderSerializer
     
 class RemissionViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para la gestión de Remisiones.
+    Implementa select_related y prefetch_related para optimizar las consultas y evitar N+1.
+    """
     queryset = Remission.objects.select_related('order__customer').prefetch_related('sales', 'credits').all()
     serializer_class = RemissionSerializer
     
@@ -30,6 +38,9 @@ class RemissionViewSet(viewsets.ModelViewSet):
         
     @action(detail=True, methods=['get'])
     def summary(self, request, pk=None):
+        """
+        Genera un resumen de la remisión.
+        """
         remission = self.get_object()
         
         sales_data = remission.sales.aggregate(
@@ -49,6 +60,9 @@ class RemissionViewSet(viewsets.ModelViewSet):
 
 class DailySalesReportViewSet(viewsets.ViewSet):
     def list(self, request):
+        """
+        Retorna un listado de ventas agrupado por fecha dentro de un rango determinado.
+        """
         date_from = request.query_params.get('from')
         date_to = request.query_params.get('to')
         

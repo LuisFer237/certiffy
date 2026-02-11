@@ -6,17 +6,27 @@ from decimal import Decimal
 from business.models import Customer, Order, Remission, Sale, CreditAssignment
 
 class BusinessLogicTest(TestCase):
+    """
+    Pruebas unitarias para validar las reglas de negocio 
+    y la integridad de los reportes financieros del sistema.
+    """
     def setUp(self):
         self.customer = Customer.objects.create(name="Test Client", is_active=True)
         self.order = Order.objects.create(customer=self.customer, folio="ORD-001")
         self.remission = Remission.objects.create(order=self.order, folio="REM-001", status='open')
 
     def test_close_fails_without_sales(self):
+        """
+        Validación 1: El cierre falla si la remisión no tiene ventas.
+        """
         with self.assertRaises(ValidationError) as cm:
             self.remission.close()
-        self.assertIn("al menos 1 Sale", str(cm.exception))
+        self.assertIn("al menos 1 venta", str(cm.exception))
 
     def test_close_fails_if_credits_exceed_sales(self):
+        """
+        Validación 2: El cierre falla si los créditos exceden las ventas.
+        """
         Sale.objects.create(remission=self.remission, subtotal=Decimal('100.00'), tax=Decimal('16.00'))
         CreditAssignment.objects.create(remission=self.remission, amount=Decimal('120.00'), reason="Over credit")
         
@@ -25,7 +35,9 @@ class BusinessLogicTest(TestCase):
         self.assertIn("excede", str(cm.exception))
 
     def test_daily_report_grouping(self):
-
+        """
+        Validación 3: El reporte diario agrupa correctamente.
+        """
         Sale.objects.create(remission=self.remission, subtotal=Decimal('100.00'), tax=Decimal('16.00'))
         
         yesterday = timezone.now() - timedelta(days=1)
