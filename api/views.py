@@ -3,8 +3,9 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.core.exceptions import ValidationError
 from django.db.models import Sum, Count
-from business.models import Customer, Order, Remission
+from business.models import Customer, Order, Remission, Sale
 from .serializers import CustomerSerializer, OrderSerializer, RemissionSerializer
+from django.db.models.functions import TruncDate
 
 class CustomerViewSet(viewsets.ModelViewSet):
     queryset = Customer.objects.all()
@@ -45,3 +46,28 @@ class RemissionViewSet(viewsets.MidelViewSet):
             'balance': total_sales - total_credits,
             'sales_count': sales_data['sales_count']
         })
+
+class DailySalesReportViewSet(viewsets.ViewSet):
+    def list(self, request):
+        date_from = request.query_params.get('from')
+        date_to = request.query_params.get('to')
+        
+        if not date_from or not date_to:
+            return Response(
+                {'error': 'Los parametros "from" y "to" son necesarios para ejecutar esta acción'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        report = (
+            Sale.objects,filter(created_at__date__range=[date_from,date_to])
+            .annotate(date=TruncDate('created_at'))
+            .values('date')
+            .annotate(
+                total_sales=Sum('subtotal') + Sum('tax'),
+                total_tax=Sum('tax'),
+                sales_count=Count('id')
+            )
+            .order_by('date')
+        )
+        
+        return Response(report)
